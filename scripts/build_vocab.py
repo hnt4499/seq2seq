@@ -1,5 +1,5 @@
 DESCRIPTION = """
-Build vocabulary from list of csv files consisting of "source" and "target" columns.
+Build full vocabulary from list of csv files consisting of "source" and "target" columns.
 Write into a csv file.
 """
 
@@ -23,7 +23,7 @@ def main(args):
         tqdm = lambda x: x
 
     src_counter = {}
-    ref_counter = {}
+    tgt_counter = {}
 
     # Start reading
     for filepath in args["file_paths"]:
@@ -44,9 +44,9 @@ def main(args):
             src_batch_text = " ".join(src_batch_text)
             src_counter.update(Counter(src_batch_text.split()))
 
-            ref_batch_text = bitext["target"].iloc[start:end]
-            ref_batch_text = " ".join(ref_batch_text)
-            ref_counter.update(Counter(ref_batch_text.split()))
+            tgt_batch_text = bitext["target"].iloc[start:end]
+            tgt_batch_text = " ".join(tgt_batch_text)
+            tgt_counter.update(Counter(tgt_batch_text.split()))
         # Free memory
         del bitext
                 
@@ -55,10 +55,10 @@ def main(args):
     src_df = src_df.rename({"index": "word"}, axis=1).sort_values("count", ascending=False)
     src_df.to_csv(args["src_output"], index=False)
 
-    ref_df = pd.DataFrame.from_dict(ref_counter, orient="index", columns=["count"]).reset_index()
-    ref_df = ref_df.rename({"index": "word"}, axis=1).sort_values("count", ascending=False)
-    ref_df.to_csv(args["ref_output"], index=False)
-    print(f"Done saving vocabulary to {args['src_output']} and {args['ref_output']}")
+    tgt_df = pd.DataFrame.from_dict(tgt_counter, orient="index", columns=["count"]).reset_index()
+    tgt_df = tgt_df.rename({"index": "word"}, axis=1).sort_values("count", ascending=False)
+    tgt_df.to_csv(args["tgt_output"], index=False)
+    print(f"Done saving vocabulary to {args['src_output']} and {args['tgt_output']}")
 
 
 def parse_arguments(argv):
@@ -67,9 +67,9 @@ def parse_arguments(argv):
         description=DESCRIPTION)
     parser.add_argument('-f', '--file-paths', type=str, nargs='+', required=True,
         help='Path to all the csv files separate by space.')
-    parser.add_argument('-s', '--src_output', type=str, required=True,
+    parser.add_argument('-s', '--src-output', type=str, required=True,
         help='Path to save the source language vocabulary.')
-    parser.add_argument('-r', '--ref_output', type=str, required=True,
+    parser.add_argument('-r', '--tgt-output', type=str, required=True,
         help='Path to save the target language vocabulary.')
     parser.add_argument('--lowercase', action="store_true",
         help='Whether to lowercase all texts.')
