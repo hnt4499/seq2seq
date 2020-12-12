@@ -4,3 +4,6 @@
 
 # Training data
 data/
+
+# Python cache
+__pycache__/
