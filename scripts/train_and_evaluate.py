@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import datetime
+from shutil import copy
 from functools import partial
 
 import yaml
@@ -99,6 +100,9 @@ def main(args):
     curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     save_dir = os.path.join(work_dir, curr_time)
     os.makedirs(save_dir, exist_ok=True)
+    # Copy config
+    copy_from = os.path.realpath(args.config_path)
+    copy_to = os.path.realpath(os.path.join(save_dir, "config.yaml"))
 
     # Start training and evaluating
     for epoch in range(num_epochs):
