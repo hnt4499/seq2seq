@@ -1,4 +1,4 @@
-from random import shuffle
+from random import shuffle, choice
 
 import torch
 import pandas as pd
@@ -34,7 +34,7 @@ class CustomDataset(IterableDataset):
         self.shuffle = shuffle
 
         if num_samples is None:
-            self.bitext = pd.read_csv(bitext_file)
+            self.bitext = pd.read_csv(bitext_file, na_filter=False)
             self.num_samples = len(self.bitext)
             self.bitext = None  # free memory
         else:
@@ -49,7 +49,7 @@ class CustomDataset(IterableDataset):
 
     def __iter__(self):
         if self.bitext is None:
-            self.bitext = pd.read_csv(self.bitext_file)
+            self.bitext = pd.read_csv(self.bitext_file, na_filter=False)
         # Intialize
         if self.shuffle:
             shuffle(self.idxs)
@@ -63,7 +63,18 @@ class CustomDataset(IterableDataset):
             self.bitext = None  # free memory
             raise StopIteration
 
-        idx = self.idxs[self.curr_idx]
+        try:
+            src_toks, tgt_toks = self.getitem(self.curr_idx)
+            self.curr_idx += 1  # update index
+            return src_toks, tgt_toks
+        except Exception as e:  # return a random index
+            print(f"Error occured at index {self.idxs[self.curr_idx]}: {e}")
+            idx = choice(self.idxs)
+            return self.getitem(idx)
+
+    def getitem(self, index):
+        """Get item at a particular index"""
+        idx = self.idxs[index]
         src_text, tgt_text = self.bitext.loc[idx, ["source", "target"]]
         # Tokenize and convert to index
         src_tok2idx = self.src_vocab["tok2idx"]
@@ -82,6 +93,4 @@ class CustomDataset(IterableDataset):
                     for tok in tgt_text.split()]
         tgt_toks = [tgt_sos] + tgt_toks + [tgt_eos]
 
-        # Update index
-        self.curr_idx += 1
         return torch.tensor(src_toks), torch.tensor(tgt_toks)
