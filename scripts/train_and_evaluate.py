@@ -103,6 +103,7 @@ def main(args):
     # Copy config
     copy_from = os.path.realpath(args.config_path)
     copy_to = os.path.realpath(os.path.join(save_dir, "config.yaml"))
+    copy(copy_from, copy_to)
 
     # Start training and evaluating
     for epoch in range(num_epochs):
