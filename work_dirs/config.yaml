@@ -1,0 +1,36 @@
+data:
+    bitext_files:
+        train:
+            - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.0-15
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.15-20
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.20-25
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.25-30
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.30-35
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.35-40
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.40-45
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.45-55
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.55-75
+            # - /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/training_data.en-fr.75-175
+        val: /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/val_data.en-fr
+        test: /media/jupyter/Data/dataset/NLP/text/MT/processed_3rd_step/test_data.en-fr
+    src_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/vocab.30000.en-fr.en
+    tgt_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/vocab.30000.en-fr.fr
+
+model:
+    embedding_dim: 512
+    encoder_hidden_dim: 512
+    decoder_hidden_dim: 512
+    attention_dim: 256
+    bidirectional: true
+    num_layers: 2
+training:
+    work_dir: /home/jupyter/Documents/projects/RNNencdec/work_dirs
+    dropout: 0.3
+    device: cuda
+    learning_rate: 0.1
+    # Global batch size if int, or can be a list of batch sizes corresponding
+    # to each training file
+    batch_size: 96
+    num_epochs: 10
+    num_workers: 1
+    gradient_clip: 1  # set to None to ignore gradient clipping

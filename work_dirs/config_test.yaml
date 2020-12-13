@@ -1,0 +1,28 @@
+# (almost) same data and configs as in the PyTorch tutorial
+data:
+    bitext_files:
+        train:
+            - /media/jupyter/Data/dataset/NLP/text/multi30k/train.en-de
+        val: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
+        test: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
+    src_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/test.vocab.all.en-de.en
+    tgt_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/test.vocab.all.en-de.de
+
+model:
+    embedding_dim: 32
+    encoder_hidden_dim: 64
+    decoder_hidden_dim: 64
+    attention_dim: 8
+    bidirectional: true
+    num_layers: 1
+training:
+    work_dir: /home/jupyter/Documents/projects/RNNencdec/work_dirs
+    dropout: 0.5
+    device: cuda
+    learning_rate: 0.001
+    # Global batch size if int, or can be a list of batch sizes corresponding
+    # to each training file
+    batch_size: 128
+    num_epochs: 10
+    num_workers: 1
+    gradient_clip: 1  # set to None to ignore gradient clipping

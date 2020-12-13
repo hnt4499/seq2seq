@@ -10,3 +10,6 @@ __pycache__/
 
 # Build
 *.egg-info/
+
+# Working directories
+work_dirs/202*
