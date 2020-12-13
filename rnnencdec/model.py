@@ -184,7 +184,7 @@ class BahdanauDecoder(nn.Module):
     """
     def __init__(self, output_dim, emb_dim, enc_hid_dim, dec_hid_dim, dropout,
                  attention, bidirectional=True):
-        super(Decoder, self).__init__()
+        super(BahdanauDecoder, self).__init__()
 
         self.output_dim = output_dim
         self.emb_dim = emb_dim
