@@ -2,10 +2,10 @@ from random import shuffle, choice
 
 import torch
 import pandas as pd
-from torch.utils.data import IterableDataset
+from torch.utils.data import Dataset
 
 
-class CustomDataset(IterableDataset):
+class CustomDataset(Dataset):
     """Custom dataset that reads one bitext chunk at a time.
 
     Parameters
@@ -40,42 +40,23 @@ class CustomDataset(IterableDataset):
         else:
             self.bitext = None  # lazy init
             self.num_samples = num_samples
-        # For random indexing
-        self.idxs = list(range(self.num_samples))
-        self.curr_idx = 0
 
     def __len__(self):
         return self.num_samples
 
-    def __iter__(self):
+    def __getitem__(self, index):
         if self.bitext is None:
             self.bitext = pd.read_csv(self.bitext_file, na_filter=False)
-        # Intialize
-        if self.shuffle:
-            shuffle(self.idxs)
-        self.curr_idx = 0
-
-        return self
-
-    def __next__(self):
-        # Stop if needed
-        if self.curr_idx >= self.num_samples:
-            self.bitext = None  # free memory
-            raise StopIteration
-
         try:
-            src_toks, tgt_toks = self.getitem(self.curr_idx)
-            self.curr_idx += 1  # update index
-            return src_toks, tgt_toks
+            return self.getitem(index)
         except Exception as e:  # return a random index
-            print(f"Error occured at index {self.idxs[self.curr_idx]}: {e}")
-            idx = choice(self.idxs)
+            print(f"Error occured at index {index}: {e}")
+            idx = choice(range(self.num_samples))
             return self.getitem(idx)
 
     def getitem(self, index):
         """Get item at a particular index"""
-        idx = self.idxs[index]
-        src_text, tgt_text = self.bitext.loc[idx, ["source", "target"]]
+        src_text, tgt_text = self.bitext.loc[index, ["source", "target"]]
         # Tokenize and convert to index
         src_tok2idx = self.src_vocab["tok2idx"]
         src_sos = src_tok2idx["<sos>"]
@@ -94,6 +75,10 @@ class CustomDataset(IterableDataset):
         tgt_toks = [tgt_sos] + tgt_toks + [tgt_eos]
 
         return torch.tensor(src_toks), torch.tensor(tgt_toks)
+
+    def clear(self):
+        """Clear memory"""
+        self.bitext = None
 
 
 def collate_fn(batch, pad_idx=0):
