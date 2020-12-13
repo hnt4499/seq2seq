@@ -7,23 +7,26 @@ from torch.utils.data import IterableDataset
 
 class CustomDataset(IterableDataset):
     """Custom dataset that reads one bitext chunk at a time.
-    
+
     Parameters
     ----------
     bitext_file : str or list of str
         Path to the bitext file (*.csv) with two columns "source" and "target".
     src_vocab : str
-        A dictionary obtained from the script `scripts/build_truncated_vocab.py` containing
-        two keys: "tok2idx" and "idx2tok".
+        A dictionary obtained from the script
+        `scripts/build_truncated_vocab.py` containing two keys: "tok2idx" and
+        "idx2tok".
     tgt_vocab : str
-        A dictionary obtained from the script `scripts/build_truncated_vocab.py` containing
-        two keys: "tok2idx" and "idx2tok".
+        A dictionary obtained from the script
+        `scripts/build_truncated_vocab.py` containing two keys: "tok2idx" and
+        "idx2tok".
     num_samples : int
         Number of samples of this particular bitext chunk.
     shuffle : bool
         Whether to shuffle the dataset.
     """
-    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None, shuffle=True):
+    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None,
+                 shuffle=True):
         super(CustomDataset, self).__init__()
         self.bitext_file = bitext_file
         self.src_vocab = src_vocab
@@ -43,7 +46,6 @@ class CustomDataset(IterableDataset):
 
     def __len__(self):
         return self.num_samples
-        
 
     def __iter__(self):
         if self.bitext is None:
@@ -72,11 +74,11 @@ class CustomDataset(IterableDataset):
         tgt_sos = tgt_tok2idx["<sos>"]
         tgt_eos = tgt_tok2idx["<eos>"]
 
-        src_toks = [src_tok2idx.get(tok, src_tok2idx["<unk>"]) 
+        src_toks = [src_tok2idx.get(tok, src_tok2idx["<unk>"])
                     for tok in src_text.split()]
         src_toks = [src_sos] + src_toks + [src_eos]
 
-        tgt_toks = [tgt_tok2idx.get(tok, tgt_tok2idx["<unk>"]) 
+        tgt_toks = [tgt_tok2idx.get(tok, tgt_tok2idx["<unk>"])
                     for tok in tgt_text.split()]
         tgt_toks = [tgt_sos] + tgt_toks + [tgt_eos]
 
