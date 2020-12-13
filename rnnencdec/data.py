@@ -94,3 +94,34 @@ class CustomDataset(IterableDataset):
         tgt_toks = [tgt_sos] + tgt_toks + [tgt_eos]
 
         return torch.tensor(src_toks), torch.tensor(tgt_toks)
+
+
+def collate_fn(batch, pad_idx=0):
+    """Collate function to be passed to the PyTorch dataloader.
+
+    Parameters
+    ----------
+    batch : list
+        (uncollated) Batch containing `batch_size` pairs of sentences.
+    pad_idx : int
+        Index of the padding token "<pad>".
+
+    Returns
+    -------
+    new_batch : [torch.Tensor, torch.Tensor]
+        Collated batches (2 tensors), each of which is of shape
+        (max_len, batch_size).
+
+    """
+    src_sents = [pair[0] for pair in batch]
+    tgt_sents = [pair[1] for pair in batch]
+
+    new_batch = []
+    for sents in [src_sents, tgt_sents]:
+        max_len = max(len(sent) for sent in sents)
+        new_sents = torch.full(
+            size=(max_len, len(batch)), fill_value=pad_idx, dtype=torch.int64)
+        for i, sent in enumerate(sents):
+            new_sents[:len(sent), i] = sent
+        new_batch.append(new_sents)
+    return new_batch
