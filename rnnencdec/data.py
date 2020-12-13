@@ -10,8 +10,8 @@ class CustomDataset(IterableDataset):
     
     Parameters
     ----------
-    bitext_file : str
-        Path to the bitext file (*.csv) with two columns "source" and "target".
+    bitext_files : str or list of str
+        Path to the bitext file(s) (*.csv) with two columns "source" and "target".
     src_vocab : str
         A dictionary obtained from the script `scripts/build_truncated_vocab.py` containing
         two keys: "tok2idx" and "idx2tok".
@@ -23,15 +23,19 @@ class CustomDataset(IterableDataset):
     shuffle : bool
         Whether to shuffle the dataset.
     """
-    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None, shuffle=True):
+    def __init__(self, bitext_files, src_vocab, tgt_vocab, num_samples=None, shuffle=True):
         super(CustomDataset, self).__init__()
-        self.bitext_file = bitext_file
+        self.bitext_files = bitext_files
         self.src_vocab = src_vocab
         self.tgt_vocab = tgt_vocab
         self.shuffle = shuffle
 
+        if isinstance(self.bitext_files, str):
+            self.bitext_files = [self.bitext_files]
+
         if num_samples is None:
-            self.bitext = pd.read_csv(self.bitext_file)
+            self.bitext = [pd.read_csv(bitext_file) for bitext_file in self.bitext_files]
+            self.bitext = pd.concat(self.bitext, axis=1)
             self.num_samples = len(self.bitext)
         else:
             self.bitext = None  # lazy init
@@ -46,7 +50,8 @@ class CustomDataset(IterableDataset):
 
     def __iter__(self):
         if self.bitext is None:
-            self.bitext = pd.read_csv(self.bitext_file)
+            self.bitext = [pd.read_csv(bitext_file) for bitext_file in self.bitext_files]
+            self.bitext = pd.concat(self.bitext, axis=1)
         # Intialize
         if self.shuffle:
             shuffle(self.idxs)
@@ -81,4 +86,4 @@ class CustomDataset(IterableDataset):
 
         # Update index
         self.curr_idx += 1
-        return torch.tensor(src_toks, dtype=torch.int16), torch.tensor(tgt_toks, dtype=torch.int16)
+        return torch.tensor(src_toks), torch.tensor(tgt_toks)

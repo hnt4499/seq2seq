@@ -16,8 +16,7 @@ SPECIAL_TOKENS = ["<pad>", "<unk>", "<sos>", "<eos>"]
 def main(args):
     args = vars(args)
     # Read full vocab
-    full_vocab = pd.read_csv(args["full_vocab_path"])
-    full_vocab = full_vocab.sort_values("count", ascending=False)
+    full_vocab = pd.read_csv(args["full_vocab_path"], na_filter=False)
     # Process
     tokens = SPECIAL_TOKENS + full_vocab["word"].iloc[:args["vocab_size"]].to_list()
     tok2idx = dict(zip(tokens, range(len(tokens))))
