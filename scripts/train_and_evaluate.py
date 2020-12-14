@@ -62,15 +62,22 @@ def main(args):
     collate_fn_init = partial(
         collate_fn, pad_idx=tgt_vocab["tok2idx"]["<pad>"])
 
+    num_samples = config["data"].get(
+        "num_samples", [None] * len(bitext_files["train"]))
+    if isinstance(batch_size, int):
+        batch_size = [batch_size] * len(bitext_files["train"])
+    assert len(num_samples) == len(batch_size) == len(bitext_files["train"])
+
     # Initialize dataloaders
-    for dataset_name, bitext_file in bitext_files.items():
+    for dataset_name, bitext_file in tqdm(bitext_files.items()):
         if isinstance(bitext_file, list):
             dataloaders_ = []
-            for bitext_f in bitext_file:
-                dataset = CustomDataset(bitext_f, src_vocab, tgt_vocab,
-                                        num_samples=None, shuffle=True)
+            for i, bitext_f in enumerate(bitext_file):
+                dataset = CustomDataset(
+                    bitext_f, src_vocab, tgt_vocab,
+                    num_samples=num_samples[i], shuffle=True)
                 dataloader = DataLoader(
-                    dataset, batch_size=batch_size, shuffle=False,
+                    dataset, batch_size=batch_size[i], shuffle=False,
                     collate_fn=collate_fn_init, num_workers=num_workers)
                 dataloaders_.append(dataloader)
             dataloaders[dataset_name] = dataloaders_
@@ -78,7 +85,7 @@ def main(args):
             dataset = CustomDataset(bitext_file, src_vocab, tgt_vocab,
                                     num_samples=None, shuffle=True)
             dataloader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=False,
+                dataset, batch_size=batch_size[-1], shuffle=False,
                 collate_fn=collate_fn_init, num_workers=num_workers)
             dataloaders[dataset_name] = dataloader
 
