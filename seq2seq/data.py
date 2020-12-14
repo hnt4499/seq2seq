@@ -1,5 +1,6 @@
 from random import shuffle, choice
 
+from loguru import logger
 import torch
 import pandas as pd
 from torch.utils.data import Dataset
@@ -50,7 +51,7 @@ class CustomDataset(Dataset):
         try:
             return self.getitem(index)
         except Exception as e:  # return a random index
-            print(f"Error occured at index {index}: {e}")
+            logger.info(f"Error occured at index {index}: {e}")
             idx = choice(range(self.num_samples))
             return self.getitem(idx)
 

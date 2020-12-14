@@ -9,6 +9,7 @@ from functools import partial
 from pathlib import Path
 
 import yaml
+from loguru import logger
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -50,6 +51,27 @@ def main(args):
     num_workers = training_info["num_workers"]
     gradient_clip = training_info["gradient_clip"]
     testing = training_info.get("testing", False)
+
+    load_from = args.load_from
+    resume_from = args.resume_from
+
+    # Get save directory
+    if resume_from is None:
+        curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_dir = os.path.join(work_dir, curr_time)
+        os.makedirs(save_dir, exist_ok=True)
+    else:
+        save_dir = os.path.realpath(resume_from)
+        assert os.path.exists(save_dir)
+
+    # Get logger
+    logger.remove()  # remove default handler
+    logger_path = os.path.join(save_dir, "training.log")
+    logger.add(logger_path, mode="a",
+               format="{time:YYYY-MM-DD at HH:mm:ss} | {message}")
+    logger.add(
+        sys.stderr, colorize=True,
+        format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> | {message}")
 
     # Load vocab
     src_vocab = json.load(open(config["data"]["src_vocab_path"], "r"))
@@ -106,8 +128,6 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab["tok2idx"]["<pad>"])
 
-    load_from = args.load_from
-    resume_from = args.resume_from
     if load_from is not None and resume_from is not None:
         raise ValueError(
             "`load_from` and `resume_from` are mutually exclusive.")
@@ -115,18 +135,10 @@ def main(args):
     # Load from a pretrained model
     if load_from is not None:
         load_from = os.path.realpath(load_from)
-        print(f"Loading model at {load_from}")
+        logger.info(f"Loading model at {load_from}")
         model.load_state_dict(torch.load(load_from, map_location=device))
 
-    # Save to a directory
-    if resume_from is None:
-        curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        save_dir = os.path.join(work_dir, curr_time)
-        os.makedirs(save_dir, exist_ok=True)
-    else:
-        save_dir = os.path.realpath(resume_from)
-        assert os.path.exists(save_dir)
-
+    if resume_from is not None:
         # Ensure that the two configs match (with some exclusions)
         with open(os.path.join(save_dir, "config.yaml"), "r") as conf:
             resume_config = yaml.load(conf, Loader=yaml.FullLoader)
@@ -136,7 +148,7 @@ def main(args):
         # Load the most recent saved model
         model_list = Path(save_dir).glob("model*.pth")
         last_saved_model = max(model_list, key=os.path.getctime)
-        print(f"Loading most recent saved model at {last_saved_model}")
+        logger.info(f"Loading most recent saved model at {last_saved_model}")
         model.load_state_dict(
             torch.load(last_saved_model, map_location=device))
         # Get some more info for resuming training
@@ -171,7 +183,7 @@ def main(args):
 
             # Print results
             bitext_name = os.path.split(dataloader.dataset.bitext_file)[-1]
-            print(
+            logger.info(
                 f"Epoch: {epoch}\tFile: {bitext_name}"
                 f"\tTrain loss: {train_loss:.2f}\tTrain PPL: "
                 f"{math.exp(train_loss):.2f}\tVal loss: {val_loss:.2f}"
@@ -181,13 +193,14 @@ def main(args):
             save_path = os.path.join(
                 save_dir, f"model_{epoch}_{dataloader_i}.pth")
             torch.save(model.state_dict(), save_path)
-            print(f"Model saved to {save_path}")
+            logger.info(f"Model saved to {save_path}")
 
     # Test
     test_loss = evaluate(model, dataloaders["test"], criterion, device,
                          testing=testing)
-    print(f"Test loss: {test_loss:.4f}\tTest PPL: {math.exp(test_loss):.4f}")
-    print("Training finished.")
+    logger.info(
+        f"Test loss: {test_loss:.4f}\tTest PPL: {math.exp(test_loss):.4f}")
+    logger.info("Training finished.")
 
 
 def parse_arguments(argv):
