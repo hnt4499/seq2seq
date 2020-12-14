@@ -51,7 +51,7 @@ training:
         - 48
         - 32
         - 32
-        - 32
+        - 8
     num_epochs: 10
     num_workers: 1
     gradient_clip: 1  # set to None to ignore gradient clipping

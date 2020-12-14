@@ -44,7 +44,7 @@ def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
     epoch_loss = 0
 
     total = 10 if testing else len(dataloader)
-    with tqdm(dataloader, total=total) as t:
+    with tqdm(dataloader, total=total, leave=False) as t:
         if epoch is not None and total_epoch is not None:
             t.set_description(f"Training ({epoch}/{total_epoch})")
         else:
@@ -108,7 +108,7 @@ def evaluate(model, dataloader, criterion, device, epoch=None,
 
     with torch.no_grad():
         total = 10 if testing else len(dataloader)
-        with tqdm(dataloader, total=total) as t:
+        with tqdm(dataloader, total=total, leave=False) as t:
             if epoch is not None and total_epoch is not None:
                 t.set_description(f"Evaluating ({epoch}/{total_epoch})")
             else:

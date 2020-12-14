@@ -70,10 +70,10 @@ def main(args):
     assert len(num_samples) == len(batch_size) == len(bitext_files["train"])
 
     # Initialize dataloaders
-    for dataset_name, bitext_file in tqdm(bitext_files.items()):
+    for dataset_name, bitext_file in bitext_files.items():
         if isinstance(bitext_file, list):
             dataloaders_ = []
-            for i, bitext_f in enumerate(bitext_file):
+            for i, bitext_f in tqdm(enumerate(bitext_file)):
                 dataset = CustomDataset(
                     bitext_f, src_vocab, tgt_vocab,
                     num_samples=num_samples[i], shuffle=True)
@@ -115,21 +115,28 @@ def main(args):
 
     # Start training and evaluating
     for epoch in range(num_epochs):
-        for dataloader in dataloaders["train"]:
-            train_loss = train(model, dataloader, optimizer, criterion, device,
-                               gradient_clip, testing=testing)
-            val_loss = evaluate(model, dataloaders["val"], criterion, device,
-                                testing=testing)
+        for dataloader_i, dataloader in enumerate(dataloaders["train"]):
+            train_loss = train(
+                model, dataloader, optimizer, criterion, device, gradient_clip,
+                epoch=epoch, total_epoch=num_epochs, testing=testing)
+            val_loss = evaluate(
+                model, dataloaders["val"], criterion, device, epoch=epoch,
+                total_epoch=num_epochs, testing=testing)
             dataloader.dataset.clear()
 
-        print(f"Epoch: {epoch + 1}\tTrain loss: {train_loss:.2f}\tTrain PPL: "
-              f"{math.exp(train_loss):.2f}\tVal loss: {val_loss:.2f}"
-              f"\tVal PPL: {math.exp(val_loss):.2f}")
+            # Print results
+            bitext_name = os.path.split(dataloader.dataset.bitext_file)[-1]
+            print(
+                f"Epoch: {epoch + 1}\tFile: {bitext_name}"
+                f"\tTrain loss: {train_loss:.2f}\tTrain PPL: "
+                f"{math.exp(train_loss):.2f}\tVal loss: {val_loss:.2f}"
+                f"\tVal PPL: {math.exp(val_loss):.2f}")
 
-        # Save model
-        save_path = os.path.join(save_dir, f"model_{epoch}.pth")
-        torch.save(model.state_dict(), save_path)
-        print(f"Model saved to {save_path}")
+            # Save model
+            save_path = os.path.join(
+                save_dir, f"model_{epoch}_{dataloader_i}.pth")
+            torch.save(model.state_dict(), save_path)
+            print(f"Model saved to {save_path}")
 
     # Test
     test_loss = evaluate(model, dataloaders["test"], criterion, device,
