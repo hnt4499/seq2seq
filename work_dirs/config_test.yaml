@@ -26,3 +26,4 @@ training:
     num_epochs: 10
     num_workers: 1
     gradient_clip: 1  # set to None to ignore gradient clipping
+    testing: true

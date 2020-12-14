@@ -4,8 +4,9 @@ import argparse
 import json
 import math
 import datetime
-from shutil import copy
+from shutil import copy, SameFileError
 from functools import partial
+from pathlib import Path
 
 import yaml
 from tqdm import tqdm
@@ -19,6 +20,7 @@ from seq2seq.data import CustomDataset, collate_fn
 from seq2seq.model import (Encoder, BahdanauAttention, BahdanauDecoder,
                            Seq2Seq, init_weights)
 from seq2seq.training import train, evaluate
+from seq2seq.utils import compare_config
 
 
 DESCRIPTION = """Train and evaluate a sequence to sequence model for machine
@@ -27,7 +29,7 @@ translation."""
 
 def main(args):
     with open(args.config_path, "r") as conf:
-        config = yaml.load(conf)
+        config = yaml.load(conf, Loader=yaml.FullLoader)
 
     # Unpack model hyperparameters
     model_info = config["model"]
@@ -105,17 +107,49 @@ def main(args):
     criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab["tok2idx"]["<pad>"])
 
     # Save to a directory
-    curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    save_dir = os.path.join(work_dir, curr_time)
-    os.makedirs(save_dir, exist_ok=True)
+    resume_from = args.resume_from
+    if resume_from is None:
+        curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_dir = os.path.join(work_dir, curr_time)
+        os.makedirs(save_dir, exist_ok=True)
+    else:
+        save_dir = os.path.realpath(resume_from)
+        assert os.path.exists(save_dir)
+
+        # Ensure that the two configs match (with some exclusions)
+        with open(os.path.join(save_dir, "config.yaml"), "r") as conf:
+            resume_config = yaml.load(conf, Loader=yaml.FullLoader)
+        if not compare_config(config, resume_config):
+            raise RuntimeError("The two config files do not match.")
+
+        # Load the most recent saved model
+        model_list = Path(save_dir).glob("model*.pth")
+        last_saved_model = max(model_list, key=os.path.getctime)
+        print(f"Loading most recent saved model at {last_saved_model}")
+        model.load_state_dict(
+            torch.load(last_saved_model, map_location=device))
+        # Get some more info for resuming training
+        _, last_name = os.path.split(last_saved_model)
+        last_name, _ = os.path.splitext(last_name)
+        _, last_epoch, last_dataloader_i = last_name.split("_")
+        last_epoch, last_dataloader_i = int(last_epoch), int(last_dataloader_i)
+
     # Copy config
     copy_from = os.path.realpath(args.config_path)
     copy_to = os.path.realpath(os.path.join(save_dir, "config.yaml"))
-    copy(copy_from, copy_to)
+    try:
+        copy(copy_from, copy_to)
+    except SameFileError:
+        pass
 
     # Start training and evaluating
     for epoch in range(1, num_epochs + 1):
         for dataloader_i, dataloader in enumerate(dataloaders["train"]):
+            if resume_from is not None:
+                if epoch < last_epoch:
+                    continue
+                elif epoch == last_epoch and dataloader_i <= last_dataloader_i:
+                    continue
             train_loss = train(
                 model, dataloader, optimizer, criterion, device, gradient_clip,
                 epoch=epoch, total_epoch=num_epochs, testing=testing)
@@ -142,6 +176,7 @@ def main(args):
     test_loss = evaluate(model, dataloaders["test"], criterion, device,
                          testing=testing)
     print(f"Test loss: {test_loss:.4f}\tTest PPL: {math.exp(test_loss):.4f}")
+    print("Training finished.")
 
 
 def parse_arguments(argv):
@@ -151,6 +186,9 @@ def parse_arguments(argv):
     parser.add_argument(
         '-c', '--config-path', type=str, required=True,
         help='Path to full config.')
+    parser.add_argument(
+        '-r', '--resume-from', type=str, required=False, default=None,
+        help='Path to resume from.')
 
     return parser.parse_args(argv)
 
