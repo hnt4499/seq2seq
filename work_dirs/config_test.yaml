@@ -5,8 +5,8 @@ data:
             - /media/jupyter/Data/dataset/NLP/text/multi30k/train.en-de
         val: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
         test: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
-    src_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/test.vocab.all.en-de.en
-    tgt_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/test.vocab.all.en-de.de
+    src_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/test.vocab.all.en-de.en
+    tgt_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/test.vocab.all.en-de.de
 
 model:
     embedding_dim: 32
@@ -16,7 +16,7 @@ model:
     bidirectional: true
     num_layers: 1
 training:
-    work_dir: /home/jupyter/Documents/projects/RNNencdec/work_dirs
+    work_dir: /home/jupyter/Documents/projects/seq2seq/work_dirs
     dropout: 0.5
     device: cuda
     learning_rate: 0.001

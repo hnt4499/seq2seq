@@ -24,8 +24,8 @@ data:
         - 2318231
         - 1818877
         - 973643
-    src_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/vocab.30000.en-fr.en
-    tgt_vocab_path: /home/jupyter/Documents/projects/RNNencdec/data/vocab.30000.en-fr.fr
+    src_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/vocab.30000.en-fr.en
+    tgt_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/vocab.30000.en-fr.fr
 
 model:
     embedding_dim: 512
@@ -35,7 +35,7 @@ model:
     bidirectional: true
     num_layers: 2
 training:
-    work_dir: /home/jupyter/Documents/projects/RNNencdec/work_dirs
+    work_dir: /home/jupyter/Documents/projects/seq2seq/work_dirs
     dropout: 0.3
     device: cuda
     learning_rate: 0.1

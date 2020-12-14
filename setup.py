@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name="rnnencdec",
+    name="seq2seq",
     version="1.0.0",
     author="Hoang Nghia Tuyen",
     author_email="hnt4499@gmail.com",

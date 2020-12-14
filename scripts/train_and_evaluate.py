@@ -15,10 +15,10 @@ import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 
-from rnnencdec.data import CustomDataset, collate_fn
-from rnnencdec.model import (Encoder, BahdanauAttention, BahdanauDecoder,
-                             Seq2Seq, init_weights)
-from rnnencdec.training import train, evaluate
+from seq2seq.data import CustomDataset, collate_fn
+from seq2seq.model import (Encoder, BahdanauAttention, BahdanauDecoder,
+                           Seq2Seq, init_weights)
+from seq2seq.training import train, evaluate
 
 
 DESCRIPTION = """Train and evaluate a sequence to sequence model for machine
