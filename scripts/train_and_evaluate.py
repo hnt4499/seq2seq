@@ -47,6 +47,7 @@ def main(args):
     num_epochs = training_info["num_epochs"]
     num_workers = training_info["num_workers"]
     gradient_clip = training_info["gradient_clip"]
+    testing = training_info.get("testing", False)
 
     # Load vocab
     src_vocab = json.load(open(config["data"]["src_vocab_path"], "r"))
@@ -116,8 +117,9 @@ def main(args):
     for epoch in range(num_epochs):
         for dataloader in dataloaders["train"]:
             train_loss = train(model, dataloader, optimizer, criterion, device,
-                               gradient_clip)
-            val_loss = evaluate(model, dataloaders["val"], criterion, device)
+                               gradient_clip, testing=testing)
+            val_loss = evaluate(model, dataloaders["val"], criterion, device,
+                                testing=testing)
             dataloader.dataset.clear()
 
         print(f"Epoch: {epoch + 1}\tTrain loss: {train_loss:.2f}\tTrain PPL: "
@@ -130,7 +132,8 @@ def main(args):
         print(f"Model saved to {save_path}")
 
     # Test
-    test_loss = evaluate(model, dataloaders["test"], criterion, device)
+    test_loss = evaluate(model, dataloaders["test"], criterion, device,
+                         testing=testing)
     print(f"Test loss: {test_loss:.4f}\tTest PPL: {math.exp(test_loss):.4f}")
 
 

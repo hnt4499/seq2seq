@@ -12,7 +12,7 @@ import torch
 
 
 def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
-          epoch=None, total_epoch=None, tesing=False):
+          epoch=None, total_epoch=None, testing=False):
     """Train the model.
 
     Parameters

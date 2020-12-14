@@ -56,4 +56,4 @@ training:
     num_workers: 1
     gradient_clip: 1  # set to None to ignore gradient clipping
     # Testing
-    testing: false
+    testing: true
