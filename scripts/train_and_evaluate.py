@@ -73,7 +73,7 @@ def main(args):
     for dataset_name, bitext_file in bitext_files.items():
         if isinstance(bitext_file, list):
             dataloaders_ = []
-            for i, bitext_f in tqdm(enumerate(bitext_file)):
+            for i, bitext_f in enumerate(tqdm(bitext_file)):
                 dataset = CustomDataset(
                     bitext_f, src_vocab, tgt_vocab,
                     num_samples=num_samples[i], shuffle=True)
@@ -114,7 +114,7 @@ def main(args):
     copy(copy_from, copy_to)
 
     # Start training and evaluating
-    for epoch in range(num_epochs):
+    for epoch in range(1, num_epochs + 1):
         for dataloader_i, dataloader in enumerate(dataloaders["train"]):
             train_loss = train(
                 model, dataloader, optimizer, criterion, device, gradient_clip,
@@ -127,7 +127,7 @@ def main(args):
             # Print results
             bitext_name = os.path.split(dataloader.dataset.bitext_file)[-1]
             print(
-                f"Epoch: {epoch + 1}\tFile: {bitext_name}"
+                f"Epoch: {epoch}\tFile: {bitext_name}"
                 f"\tTrain loss: {train_loss:.2f}\tTrain PPL: "
                 f"{math.exp(train_loss):.2f}\tVal loss: {val_loss:.2f}"
                 f"\tVal PPL: {math.exp(val_loss):.2f}")
