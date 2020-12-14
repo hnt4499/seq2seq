@@ -12,7 +12,7 @@ import torch
 
 
 def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
-          epoch=None, total_epoch=None):
+          epoch=None, total_epoch=None, tesing=False):
     """Train the model.
 
     Parameters
@@ -36,16 +36,24 @@ def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
     total_epoch : int
         Total number of epochs. Used to print meaningful progress bar with tqdm
         if specified.
+    testing : bool
+        If True, only run for 10 iterations. Useful for debugging and finding
+        batch sizes, etc. (default: False)
     """
     model.train()
     epoch_loss = 0
 
-    with tqdm(dataloader) as t:
+    total = 10 if testing else len(dataloader)
+    with tqdm(dataloader, total=total) as t:
         if epoch is not None and total_epoch is not None:
             t.set_description(f"Training ({epoch}/{total_epoch})")
         else:
             t.set_description("Training")
         for i, (src, tgt) in enumerate(t):
+            # Break when reaching 10 iterations when testing
+            if testing and i == 10:
+                break
+
             src, tgt = src.to(device), tgt.to(device)
             optimizer.zero_grad()
 
@@ -72,7 +80,7 @@ def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
 
 
 def evaluate(model, dataloader, criterion, device, epoch=None,
-             total_epoch=None):
+             total_epoch=None, testing=False):
     """Evaluate the trained model.
 
     Parameters
@@ -91,17 +99,25 @@ def evaluate(model, dataloader, criterion, device, epoch=None,
     total_epoch : int
         Total number of epochs. Used to print meaningful progress bar with tqdm
         if specified.
+    testing : bool
+        If True, only run for 10 iterations. Useful for debugging and finding
+        batch sizes, etc. (default: False)
     """
     model.eval()
     epoch_loss = 0
 
     with torch.no_grad():
-        with tqdm(dataloader) as t:
+        total = 10 if testing else len(dataloader)
+        with tqdm(dataloader, total=total) as t:
             if epoch is not None and total_epoch is not None:
                 t.set_description(f"Evaluating ({epoch}/{total_epoch})")
             else:
                 t.set_description("Evaluating")
             for i, (src, tgt) in enumerate(t):
+                # Break when reaching 10 iterations when testing
+                if testing and i == 10:
+                    break
+
                 src, tgt = src.to(device), tgt.to(device)
 
                 # Forward
