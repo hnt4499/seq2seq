@@ -106,8 +106,19 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss(ignore_index=tgt_vocab["tok2idx"]["<pad>"])
 
-    # Save to a directory
+    load_from = args.load_from
     resume_from = args.resume_from
+    if load_from is not None and resume_from is not None:
+        raise ValueError(
+            "`load_from` and `resume_from` are mutually exclusive.")
+
+    # Load from a pretrained model
+    if load_from is not None:
+        load_from = os.path.realpath(load_from)
+        print(f"Loading model at {load_from}")
+        model.load_state_dict(torch.load(load_from, map_location=device))
+
+    # Save to a directory
     if resume_from is None:
         curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         save_dir = os.path.join(work_dir, curr_time)
@@ -188,7 +199,11 @@ def parse_arguments(argv):
         help='Path to full config.')
     parser.add_argument(
         '-r', '--resume-from', type=str, required=False, default=None,
-        help='Path to resume from.')
+        help='Directory to resume from. Mutually exclusive with `load_from`.')
+    parser.add_argument(
+        '-l', '--load-from', type=str, required=False, default=None,
+        help='Path to the model to load from. Mutually exclusive with '
+             '`resume_from`.')
 
     return parser.parse_args(argv)
 
