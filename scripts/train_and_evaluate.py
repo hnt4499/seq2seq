@@ -13,7 +13,6 @@ from loguru import logger
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 

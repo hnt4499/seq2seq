@@ -1,4 +1,4 @@
-from random import shuffle, choice
+from random import choice
 
 from loguru import logger
 import torch
@@ -26,13 +26,11 @@ class CustomDataset(Dataset):
     shuffle : bool
         Whether to shuffle the dataset.
     """
-    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None,
-                 shuffle=True):
+    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None):
         super(CustomDataset, self).__init__()
         self.bitext_file = bitext_file
         self.src_vocab = src_vocab
         self.tgt_vocab = tgt_vocab
-        self.shuffle = shuffle
 
         if num_samples is None:
             self.bitext = pd.read_csv(bitext_file, na_filter=False)
