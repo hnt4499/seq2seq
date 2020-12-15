@@ -187,13 +187,24 @@ def main(args):
                 total_epoch=num_epochs, testing=testing)
             dataloader.dataset.clear()
 
+            # Calculate perplexity
+            if train_loss <= 10:
+                train_ppl = f"{math.exp(train_loss):.2f}"
+            else:
+                train_ppl = "(...)"
+
+            if val_loss <= 10:
+                val_ppl = f"{math.exp(val_loss):.2f}"
+            else:
+                val_ppl = "(...)"
+
             # Print results
             bitext_name = os.path.split(dataloader.dataset.bitext_file)[-1]
             logger.info(
                 f"Epoch: {epoch}\tFile: {bitext_name}"
                 f"\tTrain loss: {train_loss:.2f}\tTrain PPL: "
-                f"{math.exp(train_loss):.2f}\tVal loss: {val_loss:.2f}"
-                f"\tVal PPL: {math.exp(val_loss):.2f}")
+                f"{train_ppl}\tVal loss: {val_loss:.2f}"
+                f"\tVal PPL: {val_ppl}")
 
             # Save model
             if save_dir is not None:
