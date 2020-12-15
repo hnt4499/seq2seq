@@ -128,8 +128,8 @@ def evaluate(model, dataloader, criterion, device, epoch=None,
 
                 # Update
                 epoch_loss += loss.item()
-                t.set_postfix(loss=f"{loss.item():.4f}",
-                              acc_loss=f"{(epoch_loss / (i + 1)):.4f}")
+                t.set_postfix(loss=f"{loss.item():.2f}",
+                              acc_loss=f"{(epoch_loss / (i + 1)):.2f}")
 
                 # Break when reaching 10 iterations when testing
                 if testing and i == 9:

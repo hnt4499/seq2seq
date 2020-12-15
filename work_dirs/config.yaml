@@ -33,17 +33,17 @@ model:
     decoder_hidden_dim: 512
     attention_dim: 256
     bidirectional: true
-    num_layers: 2
+    num_layers: 1
 training:
     # work_dir: /home/jupyter/Documents/projects/seq2seq/work_dirs
     work_dir: null
-    dropout: 0.3
+    dropout: 0.0
     device: cuda
-    learning_rate: 0.1
+    learning_rate: 0.01
     # Global batch size if int, or can be a list of batch sizes corresponding
     # to each training file
     batch_size:
-        - 96
+        - 256
         - 64
         - 64
         - 64
@@ -57,4 +57,4 @@ training:
     num_workers: 1
     gradient_clip: 1  # set to None to ignore gradient clipping
     # Testing
-    testing: true
+    testing: false
