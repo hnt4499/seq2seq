@@ -57,21 +57,26 @@ def main(args):
 
     # Get save directory
     if resume_from is None:
-        curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        save_dir = os.path.join(work_dir, curr_time)
-        os.makedirs(save_dir, exist_ok=True)
+        if work_dir is not None:
+            curr_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            save_dir = os.path.join(work_dir, curr_time)
+            os.makedirs(save_dir, exist_ok=True)
+        else:
+            save_dir = None
     else:
         save_dir = os.path.realpath(resume_from)
         assert os.path.exists(save_dir)
 
     # Get logger
     logger.remove()  # remove default handler
-    logger_path = os.path.join(save_dir, "training.log")
-    logger.add(logger_path, mode="a",
-               format="{time:YYYY-MM-DD at HH:mm:ss} | {message}")
     logger.add(
         sys.stderr, colorize=True,
         format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> | {message}")
+    if save_dir is not None:
+        logger_path = os.path.join(save_dir, "training.log")
+        logger.add(logger_path, mode="a",
+                   format="{time:YYYY-MM-DD at HH:mm:ss} | {message}")
+        logger.info(f"Working directory: {save_dir}")
 
     # Load vocab
     src_vocab = json.load(open(config["data"]["src_vocab_path"], "r"))
@@ -158,12 +163,13 @@ def main(args):
         last_epoch, last_dataloader_i = int(last_epoch), int(last_dataloader_i)
 
     # Copy config
-    copy_from = os.path.realpath(args.config_path)
-    copy_to = os.path.realpath(os.path.join(save_dir, "config.yaml"))
-    try:
-        copy(copy_from, copy_to)
-    except SameFileError:
-        pass
+    if save_dir is not None:
+        copy_from = os.path.realpath(args.config_path)
+        copy_to = os.path.realpath(os.path.join(save_dir, "config.yaml"))
+        try:
+            copy(copy_from, copy_to)
+        except SameFileError:
+            pass
 
     # Start training and evaluating
     for epoch in range(1, num_epochs + 1):
@@ -190,10 +196,11 @@ def main(args):
                 f"\tVal PPL: {math.exp(val_loss):.2f}")
 
             # Save model
-            save_path = os.path.join(
-                save_dir, f"model_{epoch}_{dataloader_i}.pth")
-            torch.save(model.state_dict(), save_path)
-            logger.info(f"Model saved to {save_path}")
+            if save_dir is not None:
+                save_path = os.path.join(
+                    save_dir, f"model_{epoch}_{dataloader_i}.pth")
+                torch.save(model.state_dict(), save_path)
+                logger.info(f"Model saved to {save_path}")
 
     # Test
     test_loss = evaluate(model, dataloaders["test"], criterion, device,
