@@ -50,9 +50,6 @@ def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
         else:
             t.set_description("Training")
         for i, (src, tgt) in enumerate(t):
-            # Break when reaching 10 iterations when testing
-            if testing and i == 10:
-                break
 
             src, tgt = src.to(device), tgt.to(device)
             optimizer.zero_grad()
@@ -76,7 +73,11 @@ def train(model, dataloader, optimizer, criterion, device, gradient_clip=None,
             t.set_postfix(loss=f"{loss.item():.4f}",
                           acc_loss=f"{(epoch_loss / (i + 1)):.4f}")
 
-    return epoch_loss / (len(dataloader) + 1)
+            # Break when reaching 10 iterations when testing
+            if testing and i == 10:
+                break
+
+    return epoch_loss / (i + 1)
 
 
 def evaluate(model, dataloader, criterion, device, epoch=None,
@@ -114,9 +115,6 @@ def evaluate(model, dataloader, criterion, device, epoch=None,
             else:
                 t.set_description("Evaluating")
             for i, (src, tgt) in enumerate(t):
-                # Break when reaching 10 iterations when testing
-                if testing and i == 10:
-                    break
 
                 src, tgt = src.to(device), tgt.to(device)
 
@@ -133,4 +131,8 @@ def evaluate(model, dataloader, criterion, device, epoch=None,
                 t.set_postfix(loss=f"{loss.item():.4f}",
                               acc_loss=f"{(epoch_loss / (i + 1)):.4f}")
 
-    return epoch_loss / (len(dataloader) + 1)
+                # Break when reaching 10 iterations when testing
+                if testing and i == 9:
+                    break
+
+    return epoch_loss / (i + 1)
