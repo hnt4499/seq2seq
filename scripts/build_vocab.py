@@ -32,8 +32,8 @@ def main(args):
         bitext = pd.read_csv(filepath)
         bitext.dropna(inplace=True)  # some may have NaN values
         if lowercase:
-            bitext["source"].str.lower()
-            bitext["target"].str.lower()
+            bitext["source"] = bitext["source"].str.lower()
+            bitext["target"] = bitext["target"].str.lower()
         # Loop over each batch
         batch_size = args["batch_size"]
         num_batches = math.ceil(len(bitext) / batch_size)
