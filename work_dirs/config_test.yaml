@@ -16,7 +16,8 @@ model:
     bidirectional: true
     num_layers: 1
 training:
-    work_dir: /home/jupyter/Documents/projects/seq2seq/work_dirs
+    # Set to `null` to not save anything
+    work_dir: null
     dropout: 0.5
     device: cuda
     learning_rate: 0.001

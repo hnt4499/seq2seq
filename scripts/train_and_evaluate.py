@@ -105,17 +105,17 @@ def main(args):
             for i, bitext_f in enumerate(tqdm(bitext_file)):
                 dataset = CustomDataset(
                     bitext_f, src_vocab, tgt_vocab,
-                    num_samples=num_samples[i], shuffle=True)
+                    num_samples=num_samples[i])
                 dataloader = DataLoader(
-                    dataset, batch_size=batch_size[i], shuffle=False,
+                    dataset, batch_size=batch_size[i], shuffle=True,
                     collate_fn=collate_fn_init, num_workers=num_workers)
                 dataloaders_.append(dataloader)
             dataloaders[dataset_name] = dataloaders_
         else:
             dataset = CustomDataset(bitext_file, src_vocab, tgt_vocab,
-                                    num_samples=None, shuffle=True)
+                                    num_samples=None)
             dataloader = DataLoader(
-                dataset, batch_size=batch_size[-1], shuffle=False,
+                dataset, batch_size=batch_size[-1], shuffle=True,
                 collate_fn=collate_fn_init, num_workers=num_workers)
             dataloaders[dataset_name] = dataloader
 
