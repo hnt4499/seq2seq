@@ -19,7 +19,8 @@ from torch.utils.data import DataLoader
 from seq2seq.data import CustomDataset, collate_fn
 from seq2seq.model import (Encoder, BahdanauAttention, BahdanauDecoder,
                            Seq2Seq, init_weights)
-from seq2seq.training import train, evaluate
+from seq2seq.training import train
+from seq2seq.eval import evaluate
 from seq2seq.utils import compare_config
 
 
