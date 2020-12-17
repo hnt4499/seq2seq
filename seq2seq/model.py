@@ -135,8 +135,8 @@ class BahdanauAttention(nn.Module):
         Returns
         -------
         attention : torch.Tensor
-            A vector which represents the probabilities of attending to a word
-            over all word in the input sentence.
+            A tensor of shape (batch, src_len) representig the probabilities of
+            attending to a word over all words in the input sentence.
         """
         src_len = encoder_outputs.shape[0]
 
@@ -202,7 +202,8 @@ class BahdanauDecoder(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def _weighted_encoder_rep(self, decoder_hidden, encoder_outputs):
+    def _weighted_encoder_rep(self, decoder_hidden, encoder_outputs,
+                              return_attn_scores=False):
         """Compute weighted encoder representation.
 
         Parameters
@@ -213,6 +214,9 @@ class BahdanauDecoder(nn.Module):
             Encoder outputs (first element of the returned tuple) containing
             all last layer's hidden states of shape
             (seq_len, batch, num_directions * enc_hid_dim).
+        return_attn_scores : bool
+            Whether to return attention scores (of shape (batch, src_len)) or
+            not. Useful for visualizing attention alignments. (default: False)
 
         Returns
         -------
@@ -220,6 +224,9 @@ class BahdanauDecoder(nn.Module):
             Weighted encoder representation of shape
             (1, batch, num_direction * enc_hid_dim) where `num_directions` is
             the number of directions of the RNN layer in the encoder.
+        attn_scores (optional) : torch.Tensor
+            Attention scores of shape (batch, src_len). Returned only when
+            `return_attn_scores` is set to True.
         """
 
         a = self.attention(decoder_hidden, encoder_outputs)  # (batch, seq_len)
@@ -235,9 +242,12 @@ class BahdanauDecoder(nn.Module):
         weighted_encoder_rep = weighted_encoder_rep.permute(
             1, 0, 2)  # (1, batch, num_directions * enc_hid_dim)
 
+        if return_attn_scores:
+            return weighted_encoder_rep, a.squeeze()
         return weighted_encoder_rep  # (1, batch, num_directions * enc_hid_dim)
 
-    def forward(self, input, decoder_hidden, encoder_outputs):
+    def forward(self, input, decoder_hidden, encoder_outputs,
+                return_attn_scores=False):
         """Forward step.
 
         Parameters
@@ -250,6 +260,9 @@ class BahdanauDecoder(nn.Module):
             Encoder outputs (first element of the returned tuple) containing
             all last layer's hidden states of shape
             (seq_len, batch, num_directions * enc_hid_dim).
+        return_attn_scores : bool
+            Whether to return attention scores (of shape (batch, src_len)) or
+            not. Useful for visualizing attention alignments. (default: False)
 
         Returns
         -------
@@ -257,15 +270,22 @@ class BahdanauDecoder(nn.Module):
             Prediction of shape (batch, output_dim).
         decoder_hidden : torch.Tensor
             Current decoder hidden state of shape (batch, dec_hid_dim).
+        attn_scores (optional) : torch.Tensor
+            Attention scores of shape (batch, src_len). Returned only when
+            `return_attn_scores` is set to True.
         """
 
         input = input.unsqueeze(0)  # (1, batch)
 
         embedded = self.dropout(self.embedding(input))  # (1, batch, emb_dim)
 
-        # (1, batch, num_directions * enc_hid_dim)
+        # weighted_encoder_rep: (1, batch, num_directions * enc_hid_dim)
+        # attn_scores (optional): (batch, src_len)
         weighted_encoder_rep = self._weighted_encoder_rep(
-            decoder_hidden, encoder_outputs)
+            decoder_hidden, encoder_outputs,
+            return_attn_scores=return_attn_scores)
+        if return_attn_scores:
+            weighted_encoder_rep, attn_scores = weighted_encoder_rep
 
         rnn_input = torch.cat(
             (embedded, weighted_encoder_rep),
@@ -284,6 +304,8 @@ class BahdanauDecoder(nn.Module):
         output = torch.cat((output, weighted_encoder_rep, embedded), dim=1)
         output = self.out(output)  # (batch, output_dim)
 
+        if return_attn_scores:
+            return output, decoder_hidden.squeeze(0), attn_scores
         return output, decoder_hidden.squeeze(0)
 
 
