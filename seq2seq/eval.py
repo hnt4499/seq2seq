@@ -216,6 +216,7 @@ def evaluate(model, dataloader, criterion, device, prefix="", testing=False,
             logger.info(
                 prefix + f"Detokenized BLEU: {detok_bleu.format()}")
 
+    model.train()
     return epoch_loss / (i + 1)
 
 

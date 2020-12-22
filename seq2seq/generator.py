@@ -227,7 +227,7 @@ class SequenceGenerator(nn.Module):
         )  # forward and backward-compatible False mask
 
         # List of finalized/finished sentences
-        finalized = [[]] * batch
+        finalized = [[] for i in range(batch)]
         finished = [False] * batch
         num_remaining_sent = batch  # number of sentences remaining
 

@@ -24,10 +24,10 @@ training:
     # Global batch size if int, or can be a list of batch sizes corresponding
     # to each training file
     batch_size: 128
-    num_epochs: 1
+    num_epochs: 100
     num_workers: 1
     gradient_clip: 1  # set to null to ignore gradient clipping
-    testing: true  # set to true to stop at 10th batch.
+    testing: false  # set to true to stop at 10th batch.
 evaluating:
     evaluate_every: 1000  # iteration interval
     evaluate_bleu: true
