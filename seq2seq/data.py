@@ -23,14 +23,17 @@ class CustomDataset(Dataset):
         "idx2tok".
     num_samples : int
         Number of samples of this particular bitext chunk.
-    shuffle : bool
-        Whether to shuffle the dataset.
+    return_idx : bool
+        Whether to return index when `__getitem__` is called. Useful for beam
+        search to map back original sentences.
     """
-    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None):
+    def __init__(self, bitext_file, src_vocab, tgt_vocab, num_samples=None,
+                 return_idx=False):
         super(CustomDataset, self).__init__()
         self.bitext_file = bitext_file
         self.src_vocab = src_vocab
         self.tgt_vocab = tgt_vocab
+        self.return_idx = return_idx
 
         if num_samples is None:
             self.bitext = pd.read_csv(bitext_file, na_filter=False)
@@ -73,6 +76,8 @@ class CustomDataset(Dataset):
                     for tok in tgt_text.split()]
         tgt_toks = [tgt_sos] + tgt_toks + [tgt_eos]
 
+        if self.return_idx:
+            return torch.tensor(src_toks), torch.tensor(tgt_toks), index
         return torch.tensor(src_toks), torch.tensor(tgt_toks)
 
     def clear(self):
@@ -100,6 +105,11 @@ def collate_fn(batch, pad_idx=0):
     src_sents = [pair[0] for pair in batch]
     tgt_sents = [pair[1] for pair in batch]
 
+    if len(batch[0]) == 3:  # return_idx is True
+        index = [pair[2] for pair in batch]
+    else:
+        index = None
+
     new_batch = []
     for sents in [src_sents, tgt_sents]:
         max_len = max(len(sent) for sent in sents)
@@ -108,4 +118,6 @@ def collate_fn(batch, pad_idx=0):
         for i, sent in enumerate(sents):
             new_sents[:len(sent), i] = sent
         new_batch.append(new_sents)
+    if index is not None:
+        new_batch.append(index)
     return new_batch

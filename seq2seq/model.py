@@ -91,6 +91,35 @@ class Encoder(nn.Module):
 
         return outputs, hidden
 
+    def reorder_encoder_out(self, encoder_outs, new_order):
+        """Reordering encoder outputs.
+
+        Parameters
+        ----------
+        encoder_outs : tuple
+            Tuple of (outputs, hidden) obtained from `self.forward`, where
+            `outputs` is of shape (seq_len, batch, num_directions *
+            enc_hid_dim) and `hidden` is of shape (batch, dec_hid_dim).
+        new_order : torch.LongTensor
+            Desired order of shape (batch * beam_size,)
+
+        Returns
+        -------
+        reordered_outputs : torch.Tensor
+            Reordered RNN outputs of shape (seq_len, batch * beam_size,
+            num_directions * enc_hid_dim).
+        reordered_hidden : torch.Tensor
+            Reorderd RNN hidden output of shape (batch * beam_size,
+            dec_hid_dim).
+        """
+        outputs, hidden = encoder_outs
+        reordered_outputs = outputs.index_select(
+            dim=1, index=new_order
+        )  # (seq_len, batch * beam_size, num_directions * enc_hid_dim)
+        reordered_hidden = hidden.index_select(
+            dim=0, index=new_order)  # (batch * beam_size, dec_hid_dim)
+        return reordered_outputs, reordered_hidden
+
 
 class BahdanauAttention(nn.Module):
     """Bahdanau attention as described in the paper
@@ -308,6 +337,27 @@ class BahdanauDecoder(nn.Module):
             return output, decoder_hidden.squeeze(0), attn_scores
         return output, decoder_hidden.squeeze(0)
 
+    def reorder_hidden_state(decoder_hidden, reorder_state):
+        """Reorder previous decoder hidden state according to `reorder_state`.
+
+        Parameters
+        ----------
+        decoder_hidden : tuple
+            Second outputs of the `forward()` method) of the previous step of
+            shape (batch, dec_hid_dim).
+        reorder_state : torch.Tensor
+            New order of shape (batch * beam_size,).
+
+        Returns
+        -------
+        reordered_decoder_hidden : torch.Tensor
+            Reordered decoder hidden state of shape (batch* beam_size,
+            output_dim).
+        """
+        reordered_decoder_hidden = decoder_hidden.index_select(
+            dim=0, index=reorder_state)
+        return reordered_decoder_hidden
+
 
 class Seq2Seq(nn.Module):
     """Decoder for the Bahdanau attention model as described in
@@ -369,6 +419,80 @@ class Seq2Seq(nn.Module):
             output = (tgt[t] if teacher_force else top1)
 
         return outputs
+
+    def forward_decoder(self, input, decoder_hidden, encoder_outputs,
+                        temperature=1.0):
+        """Forward step of the decoder for beam search.
+
+        Adapted from
+            https://github.com/pytorch/fairseq/blob/c8a0659be5cdc15caa102d5bbf72b872567c4859/fairseq/sequence_generator.py#L805
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            Input of the decoder at a time step of shape (batch * beam_size,).
+        decoder_hidden : torch.Tensor
+            Current decoder hidden state of shape (batch * beam_size,
+            dec_hid_dim).
+        encoder_outputs : torch.Tensor
+            Encoder outputs (first element of the returned tuple) containing
+            all last layer's hidden states of shape (seq_len,
+            batch * beam_size, num_directions * enc_hid_dim).
+        temperature : float
+            Temperature, where values > 1.0 produce more uniform samples
+                and values < 1.0 produce sharper samples. (default: 1.0)
+
+        Returns
+        -------
+        lprobs : torch.Tensor
+            Normalized decoder output (log-probabilities) of shape
+            (batch * beam_size, tgt_vocab_size).
+        decoder_hidden : torch.Tensor
+            Current decoder hidden state of shape (batch * beam_size,
+            dec_hid_dim).
+        attn_scores : torch.Tensor
+            Attention scores of shape (batch, src_len).
+        """
+
+        # output: (batch * beam_size, tgt_vocab_size);
+        # decoder_hidden: (batch * beam_size, dec_hid_dim)
+        # attn_scores: (batch * beam_size, src_len)
+        output, decoder_hidden, attn_scores = self.decoder.forward(
+            input=input,
+            decoder_hidden=decoder_hidden,
+            encoder_outputs=encoder_outputs,
+            return_attn_scores=True,
+        )
+
+        output.div_(temperature)
+        lprobs = self.get_normalized_probs(
+            output, log_probs=True)  # (batch * beam_size, tgt_vocab_size)
+
+        return lprobs, decoder_hidden, attn_scores
+
+    def get_normalized_probs(self, output, log_probs=True):
+        """Get normalized probabilities (or log probs) from a net's output.
+
+        Adapted from
+            https://github.com/pytorch/fairseq/blob/c8a0659be5cdc15caa102d5bbf72b872567c4859/fairseq/models/fairseq_decoder.py#L58
+
+        Parameters
+        ----------
+        output : torch.Tensor
+            Decoder's output tensor (first element) of shape
+            (batch * beam_size, output_dim).
+        log_probs : bool
+            Whether to compute log-probabilities instead of probabilities.
+            (default: True)
+
+        Returns
+        -------
+        Normalized probabilities of shape (batch * beam_size, output_dim)
+        """
+        if log_probs:
+            return F.log_softmax(output, dim=-1, dtype=torch.float32)
+        else:
+            return F.softmax(output, dim=-1, dtype=torch.float32)
 
 
 def init_weights(m):

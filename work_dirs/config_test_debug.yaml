@@ -1,33 +1,33 @@
-# (almost) same data and configs as in the PyTorch tutorial
+# (almost) same as `config_test.yaml` but using one-sentence val and test datasets for easier debugging
 data:
     bitext_files:
         train:
             - /media/jupyter/Data/dataset/NLP/text/multi30k/train.en-de
-        val: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
-        test: /media/jupyter/Data/dataset/NLP/text/multi30k/test_2016_flickr.en-de
+        val: /home/jupyter/Documents/projects/seq2seq/data/test.debug.en-de
+        test: /home/jupyter/Documents/projects/seq2seq/data/test.debug_2.en-de
     src_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/test.vocab.all.en-de.en
     tgt_vocab_path: /home/jupyter/Documents/projects/seq2seq/data/test.vocab.all.en-de.de
 
 model:
-    embedding_dim: 32
-    encoder_hidden_dim: 64
-    decoder_hidden_dim: 64
-    attention_dim: 8
+    embedding_dim: 64
+    encoder_hidden_dim: 128
+    decoder_hidden_dim: 128
+    attention_dim: 64
     bidirectional: true
     num_layers: 1
 training:
     # Set to `null` to not save anything
     work_dir: null
-    dropout: 0.5
+    dropout: 0.0
     device: cuda
     learning_rate: 0.001
     # Global batch size if int, or can be a list of batch sizes corresponding
     # to each training file
     batch_size: 128
-    num_epochs: 1
+    num_epochs: 10
     num_workers: 1
     gradient_clip: 1  # set to null to ignore gradient clipping
-    testing: true  # set to true to stop at 10th batch.
+    testing: false  # set to true to stop at 10th batch.
 evaluating:
     evaluate_every: 1000  # iteration interval
     evaluate_bleu: true
@@ -35,10 +35,8 @@ evaluating:
         print_samples: true
         nbest: 1  # print `n` best hypotheses for each source sentence
         nprint: 5  # number of samples to print
-        tgt_lang: "de"
+        tgt_lang: de
         unescape: false
-        save_val_to_file: null  # beam search results for val data
-        save_test_to_file: "/tmp/seq2seq.gen.out"  # beam search results for test data
 
         beam_size: 5
         max_len_a: 0

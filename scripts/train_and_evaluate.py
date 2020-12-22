@@ -21,6 +21,7 @@ from seq2seq.model import (Encoder, BahdanauAttention, BahdanauDecoder,
                            Seq2Seq, init_weights)
 from seq2seq.training import train
 from seq2seq.eval import evaluate
+from seq2seq.generator import SequenceGenerator
 from seq2seq.utils import compare_config
 
 
@@ -51,6 +52,28 @@ def main(args):
     num_workers = training_info["num_workers"]
     gradient_clip = training_info["gradient_clip"]
     testing = training_info.get("testing", False)
+    # Unpack evaluating hyperparameters
+    evaluating_info = config.get("evaluating", {})
+    evaluate_every = evaluating_info.get("evaluate_every", None)
+    evaluate_bleu = evaluating_info.get("evaluate_bleu", False)
+    bleu_config = evaluating_info.get("bleu_config", {})
+
+    print_samples = bleu_config.get("print_samples", False)
+    nbest = bleu_config.get("nbest", 1)
+    nprint = bleu_config.get("nprint", None)
+    tgt_lang = bleu_config.get("tgt_lang", None)  # tgt_lang must be specified
+    unescape = bleu_config.get("unescape", False)
+    if evaluate_bleu:
+        assert tgt_lang is not None
+
+    beam_size = bleu_config.get("beam_size", 1)
+    max_len_a = bleu_config.get("max_len_a", 0)
+    max_len_b = bleu_config.get("max_len_b", 200)
+    min_len = bleu_config.get("min_len", 1)
+    normalize_scores = bleu_config.get("normalize_scores", True)
+    len_penalty = bleu_config.get("len_penalty", 1.0)
+    unk_penalty = bleu_config.get("unk_penalty", 0.0)
+    temperature = bleu_config.get("temperature", 1.0)
 
     load_from = args.load_from
     resume_from = args.resume_from
@@ -66,6 +89,17 @@ def main(args):
     else:
         save_dir = os.path.realpath(resume_from)
         assert os.path.exists(save_dir)
+
+    # Directory to save the translated results in the `fairseq` format
+    if evaluate_bleu and save_dir is not None:
+        trans_save_dir = os.path.join(save_dir, "results")
+        os.makedirs(trans_save_dir, exist_ok=True)
+
+        val_save_path = os.path.join(trans_save_dir, "val.gen.out")
+        test_save_path = os.path.join(trans_save_dir, "test.gen.out")
+    else:
+        val_save_path = None
+        test_save_path = None
 
     # Get logger
     logger.remove()  # remove default handler
@@ -98,7 +132,8 @@ def main(args):
         batch_size = [batch_size] * len(bitext_files["train"])
     assert len(num_samples) == len(batch_size) == len(bitext_files["train"])
 
-    # Initialize dataloaders
+    # Initialize dataloaders; currently only supports: bitext_file is list if
+    # training data and is string val/test data.
     for dataset_name, bitext_file in bitext_files.items():
         if isinstance(bitext_file, list):
             dataloaders_ = []
@@ -113,9 +148,9 @@ def main(args):
             dataloaders[dataset_name] = dataloaders_
         else:
             dataset = CustomDataset(bitext_file, src_vocab, tgt_vocab,
-                                    num_samples=None)
+                                    num_samples=None, return_idx=evaluate_bleu)
             dataloader = DataLoader(
-                dataset, batch_size=batch_size[-1], shuffle=True,
+                dataset, batch_size=min(batch_size), shuffle=False,
                 collate_fn=collate_fn_init, num_workers=num_workers)
             dataloaders[dataset_name] = dataloader
 
@@ -162,6 +197,16 @@ def main(args):
         _, last_epoch, last_dataloader_i = last_name.split("_")
         last_epoch, last_dataloader_i = int(last_epoch), int(last_dataloader_i)
 
+    # Initialize beam search
+    if evaluate_bleu:
+        search = SequenceGenerator(
+            model, src_vocab, tgt_vocab, beam_size=beam_size,
+            max_len_a=max_len_a, max_len_b=max_len_b, min_len=min_len,
+            normalize_scores=normalize_scores, len_penalty=len_penalty,
+            unk_penalty=unk_penalty, temperature=temperature)
+    else:
+        search = None
+
     # Copy config
     if save_dir is not None:
         copy_from = os.path.realpath(args.config_path)
@@ -179,12 +224,25 @@ def main(args):
                     continue
                 elif epoch == last_epoch and dataloader_i <= last_dataloader_i:
                     continue
+
+            evaluator = partial(
+                evaluate, dataloader=dataloaders["val"], criterion=criterion,
+                device=device, testing=testing, search=search,
+                save_to_file=val_save_path, print_samples=print_samples,
+                nbest=nbest, nprint=nprint, tgt_lang=tgt_lang,
+                unescape=unescape)
+
+            # Train
             train_loss = train(
                 model, dataloader, optimizer, criterion, device, gradient_clip,
-                epoch=epoch, total_epoch=num_epochs, testing=testing)
-            val_loss = evaluate(
-                model, dataloaders["val"], criterion, device, epoch=epoch,
-                total_epoch=num_epochs, testing=testing)
+                epoch=epoch, total_epoch=num_epochs, testing=testing,
+                evaluate_every=evaluate_every, evaluator=evaluator)
+            # Evaluate
+            val_loss = evaluator(
+                model=model,
+                prefix=f"[Validation (epoch: {epoch}/{num_epochs})] ")
+
+            # Free memory
             dataloader.dataset.clear()
 
             # Calculate perplexity
@@ -214,8 +272,11 @@ def main(args):
                 logger.info(f"Model saved to {save_path}")
 
     # Test
-    test_loss = evaluate(model, dataloaders["test"], criterion, device,
-                         testing=testing)
+    test_loss = evaluate(
+        model, dataloaders["test"], criterion, device, prefix="[Test] ",
+        testing=testing, search=search, save_to_file=test_save_path,
+        print_samples=print_samples, nbest=nbest, nprint=nprint,
+        tgt_lang=tgt_lang, unescape=unescape)
     logger.info(
         f"Test loss: {test_loss:.4f}\tTest PPL: {math.exp(test_loss):.4f}")
     logger.info("Training finished.")

@@ -36,7 +36,7 @@ model:
     num_layers: 1
 training:
     # Set to `null` to not save anything
-    work_dir: null
+    work_dir: /home/jupyter/Documents/projects/seq2seq/work_dirs/
     dropout: 0.0
     device: cuda
     learning_rate: 0.01
@@ -53,8 +53,26 @@ training:
         - 32
         - 32
         - 8
-    num_epochs: 3
+    num_epochs: 1000
     num_workers: 1
     gradient_clip: 1  # set to None to ignore gradient clipping
     # Set to 'true' to allow 10 iterations per epoch
     testing: false
+evaluating:
+    evaluate_every: 1000  # iteration interval
+    evaluate_bleu: true
+    bleu_config:
+        print_samples: true
+        nbest: 1  # print `n` best hypotheses for each source sentence
+        nprint: 5  # number of samples to print
+        tgt_lang: fr
+        unescape: false
+
+        beam_size: 5
+        max_len_a: 0
+        max_len_b: 200
+        min_len: 1
+        normalize_scores: True
+        len_penalty: 1.0
+        unk_penalty: 0.0
+        temperature: 1.0
